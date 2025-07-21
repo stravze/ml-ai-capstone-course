@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Git
         run: |
@@ -21,15 +21,12 @@ jobs:
         id: get-branch
         run: |
           # Extract the source branch name from the pull request merge commit
-          MERGED_BRANCH=$(git log --merges -1 --pretty=%b | grep -oP "(?<=Merged into master ).*")
+          MERGED_BRANCH=$(git log --merges -1 --pretty=%b | grep -oP "(?<=from )[^\s]+")
           echo "Merged branch: $MERGED_BRANCH"
-          echo "merged_branch=$MERGED_BRANCH" >> $GITHUB_ENV
+          echo "merged_branch=$MERGED_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Delete the merged branch
         run: |
-          if [[ -n "${{ env.merged_branch }}" ]]; then
-            git push origin --delete ${{ env.merged_branch }}
-            echo "Deleted branch: ${{ env.merged_branch }}"
-          else
-            echo "No branch to delete"
-          fi
+            if [[ -n "${{ steps.get-branch.outputs.merged_branch }}" ]]; then
+            git push origin --delete ${{ steps.get-branch.outputs.merged_branch }}
+            echo "Deleted branch: ${{ steps.get-branch.outputs.merged_branch }}"
