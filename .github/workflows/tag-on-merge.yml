@@ -1,0 +1,44 @@
+name: Tag on Merge to Master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  tag-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+          echo "Latest tag: $VERSION"
+          echo "tag=$VERSION" >> $GITHUB_ENV
+
+      - name: Increment version
+        run: |
+          VERSION=${{ env.tag }}
+          VERSION_NUM=$(echo $VERSION | sed 's/^v//')
+          VERSION_MAJOR=$(echo $VERSION_NUM | cut -d. -f1)
+          VERSION_MINOR=$(echo $VERSION_NUM | cut -d. -f2)
+          VERSION_PATCH=$(echo $VERSION_NUM | cut -d. -f3)
+          
+          # Increment PATCH version by 1
+          VERSION_PATCH=$((VERSION_PATCH + 1))
+          NEW_VERSION="v$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH"
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Create new tag
+        run: |
+          git tag ${{ env.new_version }}
+          git push origin ${{ env.new_version }}
