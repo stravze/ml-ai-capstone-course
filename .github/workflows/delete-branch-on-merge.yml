@@ -1,0 +1,35 @@
+name: Delete Branch After Merge to Master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  delete-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get the name of the merged branch
+        id: get-branch
+        run: |
+          # Extract the source branch name from the pull request merge commit
+          MERGED_BRANCH=$(git log --merges -1 --pretty=%b | grep -oP "(?<=Merged into master ).*")
+          echo "Merged branch: $MERGED_BRANCH"
+          echo "merged_branch=$MERGED_BRANCH" >> $GITHUB_ENV
+
+      - name: Delete the merged branch
+        run: |
+          if [[ -n "${{ env.merged_branch }}" ]]; then
+            git push origin --delete ${{ env.merged_branch }}
+            echo "Deleted branch: ${{ env.merged_branch }}"
+          else
+            echo "No branch to delete"
+          fi
