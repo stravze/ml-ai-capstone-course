@@ -25,13 +25,23 @@ jobs:
       - name: Get the name of the merged branch
         id: get-branch
         run: |
-          # Extract the source branch name from the pull request merge commit
-          MERGED_BRANCH=$(git log --merges -1 --pretty=%b | grep -oP "(?<=from )[^\s]+")
+          # Get the pull request's source branch name using the merge commit
+          MERGED_BRANCH=$(git log --merges -1 --pretty=%b | grep -oP '(?<=from )\S+')
+
+          # Check if the branch was found
+          if [ -z "$MERGED_BRANCH" ]; then
+            echo "Could not extract merged branch name."
+            exit 1
+          fi
+
           echo "Merged branch: $MERGED_BRANCH"
-          echo "merged_branch=$MERGED_BRANCH" >> $GITHUB_OUTPUT
+          echo "merged_branch=$MERGED_BRANCH" >> $GITHUB_ENV
 
       - name: Delete the merged branch
         run: |
-            if [[ -n "${{ steps.get-branch.outputs.merged_branch }}" ]]; then
-            git push origin --delete ${{ steps.get-branch.outputs.merged_branch }}
-            echo "Deleted branch: ${{ steps.get-branch.outputs.merged_branch }}"
+          if [[ -n "${{ env.merged_branch }}" ]]; then
+            git push origin --delete ${{ env.merged_branch }}
+            echo "Deleted branch: ${{ env.merged_branch }}"
+          else
+            echo "No branch to delete"
+          fi
